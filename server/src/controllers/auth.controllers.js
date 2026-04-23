@@ -5,6 +5,17 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from "jsonwebtoken"
 import mongoose from 'mongoose';
 
+const getCookieOptions = () => {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "Lax",
+        path: "/"
+    };
+};
+
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -43,11 +54,7 @@ const signup = asyncHandler(async (req, res) => {
         throw new ApiError(500, "User creation failed, please try again")
     }
 
-    const options = {
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-    }
+    const options = getCookieOptions();
 
     const createdUser = await User.findById(user.id).select("-password");
 
@@ -88,11 +95,7 @@ const login = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } =
         await generateAccessAndRefreshTokens(user._id);
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
-    };
+    const options = getCookieOptions();
 
     const loggedInUser = await User.findById(user._id)
         .select("-password -refreshToken");
@@ -117,11 +120,7 @@ const logout = asyncHandler(async (req, res) => {
         }
     )
 
-    const options = {
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-    }
+    const options = getCookieOptions();
 
     return res.status(200)
         .clearCookie("accessToken", options)
@@ -167,11 +166,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Refresh token expired or already used")
     }
 
-    const options = {
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-    }
+    const options = getCookieOptions();
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
